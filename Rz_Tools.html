@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rz_Tools</title>
+<style>
+:root {
+  --bg:#0c0e12; --surface:rgba(22,26,34,0.95); --surface2:rgba(28,33,43,0.95);
+  --border:#2a3040; --text:#e1e6ef; --text2:#8b93a5; --accent:#f0883e;
+  --green:#00e676; --red:#ff3d4f; --easy:#4caf50; --mid:#ff9800; --hard:#f44336;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  font-family:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
+  background:#000; color:var(--text); width:100vw; height:100vh; overflow:hidden;
+  user-select:none; -webkit-user-select:none;
+}
+
+/* Canvas fills everything */
+#gameCanvas{display:block; position:fixed; inset:0; z-index:0;}
+.canvas-overlay{
+  position:fixed; inset:0; pointer-events:none; z-index:1; display:flex;
+  flex-direction:column; align-items:center; justify-content:center;
+}
+.overlay-big{font-size:5rem; font-weight:900; color:#fff; text-shadow:0 0 60px rgba(240,136,62,0.7);}
+
+/* Top bar */
+.top-bar{
+  position:fixed; top:0; left:0; right:0; z-index:10; display:flex; align-items:center;
+  gap:10px; padding:8px 16px; background:linear-gradient(180deg,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.4) 80%,transparent 100%);
+  flex-wrap:wrap;
+}
+.top-bar h1{
+  font-size:1.1rem; font-weight:800; letter-spacing:1px;
+  background:linear-gradient(135deg,#f0883e,#ffb347,#fff); -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent; background-clip:text; white-space:nowrap;
+}
+.top-bar .sep{width:1px; height:20px; background:var(--border);}
+.top-bar input[type=number]{
+  width:58px; padding:4px 4px; border:1px solid var(--border); border-radius:5px;
+  background:rgba(0,0,0,0.5); color:var(--text); font-size:0.8rem; text-align:center;
+  font-family:inherit; outline:none;
+}
+.top-bar input:focus{border-color:var(--accent);}
+.top-bar .edpi-val{font-weight:700; color:var(--accent); font-size:1rem; min-width:38px; text-align:center;}
+.top-bar .label{font-size:0.72rem; color:var(--text2);}
+
+.mode-btns,.diff-btns{display:flex; gap:4px;}
+.mode-btn,.diff-btn{
+  padding:5px 12px; border:2px solid var(--border); border-radius:16px;
+  background:rgba(0,0,0,0.4); color:var(--text); cursor:pointer; font-weight:700;
+  font-size:0.74rem; transition:all 0.2s; font-family:inherit; white-space:nowrap;
+}
+.mode-btn:hover,.diff-btn:hover{border-color:var(--accent);}
+.mode-btn.sel{border-color:var(--accent); background:rgba(240,136,62,0.2);}
+.diff-btn.low.sel{border-color:var(--easy); background:rgba(76,175,80,0.2); color:var(--easy);}
+.diff-btn.mid.sel{border-color:var(--mid); background:rgba(255,152,0,0.2); color:var(--mid);}
+.diff-btn.high.sel{border-color:var(--hard); background:rgba(244,67,54,0.2); color:var(--hard);}
+
+.btn-go{
+  padding:6px 18px; border:none; border-radius:16px; font-weight:700; font-size:0.82rem;
+  background:linear-gradient(135deg,var(--accent),#e07830); color:#000; cursor:pointer;
+  font-family:inherit; transition:all 0.2s; white-space:nowrap;
+}
+.btn-go:hover{transform:translateY(-1px); box-shadow:0 4px 16px rgba(240,136,62,0.4);}
+.btn-go:disabled{opacity:0.35; pointer-events:none; transform:none; box-shadow:none;}
+
+/* Crosshair panel (slide-out) */
+.ch-panel{
+  position:fixed; right:12px; top:50%; transform:translateY(-50%); z-index:10;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:14px; width:200px; transition:all 0.3s; backdrop-filter:blur(10px);
+}
+.ch-panel.hidden{right:-220px;}
+.ch-panel h3{font-size:0.78rem; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:8px;}
+.ch-toggle{
+  position:fixed; right:12px; top:50%; transform:translateY(-50%) translateX(0); z-index:11;
+  width:30px; height:30px; border-radius:50%; background:var(--surface); border:1px solid var(--border);
+  color:var(--text); cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center;
+  transition:all 0.3s; backdrop-filter:blur(10px);
+}
+.ch-panel:not(.hidden) ~ .ch-toggle{right:216px;}
+.ch-toggle:hover{border-color:var(--accent);}
+
+.ch-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; font-size:0.76rem; color:var(--text2);}
+.ch-row input[type=range]{width:82px; accent-color:var(--accent);}
+.ch-colors{display:flex; gap:3px; margin-bottom:8px;}
+.ch-dot{width:24px; height:24px; border-radius:50%; border:2px solid var(--border); cursor:pointer; transition:all 0.15s;}
+.ch-dot:hover{border-color:var(--accent); transform:scale(1.15);}
+.ch-dot.sel{border-color:var(--accent); box-shadow:0 0 8px rgba(240,136,62,0.4);}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; font-size:0.76rem; color:var(--text2);}
+.toggle{width:36px; height:18px; border-radius:9px; background:var(--border); cursor:pointer; position:relative; transition:all 0.2s;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:''; position:absolute; top:1px; left:1px; width:16px; height:16px; border-radius:50%; background:#fff; transition:all 0.2s;}
+.toggle.on::after{left:19px;}
+.cross-preview{width:100%; height:44px; background:rgba(0,0,0,0.3); border-radius:6px; margin-top:6px; display:flex; align-items:center; justify-content:center; overflow:hidden;}
+.cross-preview canvas{display:block;}
+
+/* Bottom stats */
+.stats-bar{
+  position:fixed; bottom:0; left:0; right:0; z-index:10; display:flex; gap:0;
+  background:linear-gradient(0deg,rgba(0,0,0,0.85) 0%,rgba(0,0,0,0.4) 80%,transparent 100%);
+  padding:24px 16px 10px; justify-content:center;
+}
+.stat-tile{
+  min-width:80px; padding:6px 18px; text-align:center;
+}
+.stat-tile .val{font-size:1.3rem; font-weight:800; color:var(--accent);}
+.stat-tile .lbl{font-size:0.65rem; color:var(--text2); text-transform:uppercase; letter-spacing:1px;}
+.stat-tile.hi .val{color:var(--green);}
+
+/* Leaderboard modal */
+.lb-modal{
+  position:fixed; inset:0; z-index:60; display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.75);
+}
+.lb-modal.show{display:flex;}
+.lb-modal .card{
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:20px 24px; width:340px; max-height:75vh; overflow-y:auto;
+  box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+.lb-modal h3{font-size:0.85rem; color:var(--text2); text-transform:uppercase; letter-spacing:1px; margin-bottom:10px;}
+.lb-modal .close{
+  float:right; background:none; border:none; color:var(--text2); font-size:1.3rem; cursor:pointer;
+  line-height:1; padding:0 4px;
+}
+.lb-modal .close:hover{color:#fff;}
+.lb-entry{display:flex; align-items:center; justify-content:space-between; padding:4px 0; font-size:0.76rem; border-bottom:1px solid rgba(255,255,255,0.05);}
+.lb-entry .rank{font-weight:800; width:20px; color:var(--accent);}
+.lb-entry .rank.gold{color:#ffd700;}
+.lb-entry .info{flex:1; margin:0 8px;}
+.lb-entry .info .mode{color:var(--text);}
+.lb-entry .info .detail{color:var(--text2); font-size:0.68rem;}
+.lb-entry .score{font-weight:700; color:var(--green);}
+.lb-tabs{display:flex; gap:4px; margin-bottom:8px; flex-wrap:wrap;}
+.lb-tab{
+  padding:3px 8px; border-radius:10px; font-size:0.68rem; cursor:pointer; background:var(--surface2); color:var(--text2);
+  border:1px solid transparent; font-family:inherit;
+}
+.lb-tab:hover{border-color:var(--border);}
+.lb-tab.sel{border-color:var(--accent); color:var(--accent);}
+
+/* Results popup */
+.result-popup{
+  position:fixed; inset:0; z-index:50; display:none; align-items:center; justify-content:center;
+  background:rgba(0,0,0,0.7);
+}
+.result-popup.show{display:flex;}
+.result-card{
+  background:var(--surface); border:1px solid var(--border); border-radius:14px;
+  padding:24px 32px; text-align:center; min-width:280px; box-shadow:0 8px 40px rgba(0,0,0,0.5);
+}
+.result-card h2{font-size:1.1rem; color:var(--accent); margin-bottom:14px;}
+.result-card .big{font-size:2.8rem; font-weight:900; color:var(--green);}
+.result-card .row{display:flex; justify-content:center; gap:20px; margin:10px 0; font-size:0.9rem; color:var(--text);}
+.result-card .row span{color:var(--text2);}
+.result-card .err{font-size:0.75rem; color:#ff8c00; margin-top:6px;}
+.result-card button{
+  margin-top:14px; padding:8px 28px; border:none; border-radius:8px; background:var(--accent);
+  color:#000; font-weight:700; font-size:0.9rem; cursor:pointer; font-family:inherit;
+}
+
+/* Particle */
+.particle{
+  position:fixed; pointer-events:none; width:5px; height:5px; border-radius:50%;
+  animation:pop 0.5s ease-out forwards; z-index:99;
+}
+@keyframes pop{0%{transform:scale(1);opacity:1}100%{transform:scale(0) translateY(-16px);opacity:0}}
+</style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<div class="canvas-overlay" id="overlay">
+  <div class="overlay-big" id="overlayBig" style="display:none;"></div>
+</div>
+
+<!-- Top bar -->
+<div class="top-bar" id="topBar">
+  <h1>Rz_Tools <span style="font-size:0.55rem;color:var(--text2);font-weight:400;letter-spacing:0;">By Anuket</span></h1>
+  <div class="sep"></div>
+  <input type="text" id="nameIn" value="Player" maxlength="12" style="width:80px;font-size:0.8rem;" placeholder="昵称" title="输入你的名字，将显示在排行榜">
+  <div class="sep"></div>
+  <span class="label">DPI</span><input type="number" id="dpiIn" value="800" min="100" max="32000" step="50">
+  <span class="label">×</span><input type="number" id="sensIn" value="2.00" min="0.10" max="8.00" step="0.01">
+  <span class="label">=</span><span class="edpi-val" id="edpiVal">1600</span><span class="label">eDPI</span><span class="label" style="color:var(--accent);font-weight:700;">CS2</span>
+  <div class="sep"></div>
+  <div class="mode-btns">
+    <button class="mode-btn sel" data-mode="flick">定位</button>
+    <button class="mode-btn" data-mode="tracking">跟枪</button>
+    <button class="mode-btn" data-mode="reaction">HB反应</button>
+    <button class="mode-btn" data-mode="hbreaction">反应</button>
+    <button class="mode-btn" data-mode="target30">30靶</button>
+  </div>
+  <div class="sep"></div>
+  <div class="diff-btns">
+    <button class="diff-btn low" data-diff="low">低</button>
+    <button class="diff-btn mid sel" data-diff="medium">中</button>
+    <button class="diff-btn high" data-diff="high">高</button>
+  </div>
+  <button class="btn-go" id="btnStart">▶ 开始训练</button>
+  <button class="btn-go" id="btnStop" style="display:none;background:#444;color:#fff;">⏹ 停止</button>
+</div>
+
+<!-- Leaderboard button in top bar -->
+<button class="btn-go" id="lbBtn" style="background:linear-gradient(135deg,#ffd700,#ff8c00);color:#000;font-size:0.78rem;padding:6px 10px;border-radius:8px;">🏆 排行榜</button>
+
+<!-- Floating leaderboard button -->
+<button id="lbFloat" style="position:fixed;bottom:80px;right:20px;z-index:30;width:50px;height:50px;border-radius:50%;border:2px solid #ffd700;background:rgba(0,0,0,0.8);color:#ffd700;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 16px rgba(255,215,0,0.25);transition:all 0.2s;display:flex;align-items:center;justify-content:center;">🏆</button>
+
+<!-- Leaderboard modal -->
+<div class="lb-modal" id="lbModal">
+  <div class="card">
+    <button class="close" onclick="$('lbModal').classList.remove('show')">✕</button>
+    <h3>🏆 排行榜</h3>
+    <div class="lb-tabs" id="lbTabs"></div>
+    <div id="lbList"></div>
+  </div>
+</div>
+
+<!-- Crosshair panel -->
+<button class="ch-toggle" id="chToggle" title="准星设置">✚</button>
+<div class="ch-panel hidden" id="chPanel">
+  <h3>✚ 准星设置</h3>
+  <div class="ch-colors">
+    <span class="ch-dot sel" data-color="#00ff88" style="background:#00ff88"></span>
+    <span class="ch-dot" data-color="#00ffff" style="background:#00ffff"></span>
+    <span class="ch-dot" data-color="#ffff00" style="background:#ffff00"></span>
+    <span class="ch-dot" data-color="#ff4488" style="background:#ff4488"></span>
+    <span class="ch-dot" data-color="#ff4444" style="background:#ff4444"></span>
+    <span class="ch-dot" data-color="#ffffff" style="background:#ffffff;border-color:#555;"></span>
+  </div>
+  <div class="ch-row"><span>长度</span><input type="range" id="chSize" min="3" max="22" value="12"></div>
+  <div class="ch-row"><span>间距</span><input type="range" id="chGap" min="0" max="14" value="4"></div>
+  <div class="ch-row"><span>粗细</span><input type="range" id="chThick" min="1" max="5" value="2"></div>
+  <div class="toggle-row"><span>轮廓</span><span class="toggle on" id="chOutline"></span></div>
+  <div class="toggle-row"><span>中心点</span><span class="toggle on" id="chDot"></span></div>
+  <div class="cross-preview"><canvas id="previewCanvas"></canvas></div>
+</div>
+
+<!-- Bottom stats -->
+<!-- Results popup -->
+<div class="result-popup" id="resultPopup">
+  <div class="result-card">
+    <h2 id="rpTitle"></h2>
+    <div class="big" id="rpScore"></div>
+    <div class="row" id="rpRow"></div>
+    <div class="err" id="rpErr"></div>
+    <button onclick="$('resultPopup').classList.remove('show')">关闭</button>
+  </div>
+</div>
+
+<div class="stats-bar" id="statsBar">
+  <div class="stat-tile hi"><div class="val" id="stScore">--</div><div class="lbl">评分</div></div>
+  <div class="stat-tile"><div class="val" id="stHits">0</div><div class="lbl">命中</div></div>
+  <div class="stat-tile"><div class="val" id="stAcc">--</div><div class="lbl">精准度</div></div>
+  <div class="stat-tile"><div class="val" id="stRT">--</div><div class="lbl">反应</div></div>
+  <div class="stat-tile"><div class="val" id="stTime">60.0s</div><div class="lbl">时间</div></div>
+  <div class="stat-tile"><div class="val" id="stEdpi">1600</div><div class="lbl">eDPI</div></div>
+</div>
+
+<script>
+// ==================== CS2 Aim Trainer — Fullscreen ====================
+const $=id=>document.getElementById(id);
+
+// DOM
+const canvas=$('gameCanvas'), ctx=canvas.getContext('2d');
+const overlay=$('overlay'), overlayBig=$('overlayBig');
+const previewCanvas=$('previewCanvas'), pctx=previewCanvas.getContext('2d');
+
+// ============ Crosshair ============
+const CH={color:'#00ff88',size:12,gap:4,thickness:2,outline:true,dot:true};
+function readCH(){
+  CH.color=document.querySelector('.ch-dot.sel')?.dataset.color||'#00ff88';
+  CH.size=parseInt($('chSize').value); CH.gap=parseInt($('chGap').value);
+  CH.thickness=parseInt($('chThick').value);
+  CH.outline=$('chOutline').classList.contains('on');
+  CH.dot=$('chDot').classList.contains('on');
+  drawCHPreview();
+}
+function drawCrosshair(cx,cy,context,alpha){
+  const c=CH.color, s=CH.size, g=CH.gap, t=CH.thickness;
+  context.save(); context.globalAlpha=alpha||1;
+  const dl=(x1,y1,x2,y2,clr,w)=>{
+    context.strokeStyle=clr; context.lineWidth=w; context.beginPath();
+    context.moveTo(x1,y1); context.lineTo(x2,y2); context.stroke();
+  };
+  if(CH.outline){
+    const ot=t+2;
+    dl(cx,cy-g-s,cx,cy-g,'#000',ot); dl(cx,cy+g,cx,cy+g+s,'#000',ot);
+    dl(cx-g-s,cy,cx-g,cy,'#000',ot); dl(cx+g,cy,cx+g+s,cy,'#000',ot);
+  }
+  dl(cx,cy-g-s,cx,cy-g,c,t); dl(cx,cy+g,cx,cy+g+s,c,t);
+  dl(cx-g-s,cy,cx-g,cy,c,t); dl(cx+g,cy,cx+g+s,cy,c,t);
+  if(CH.dot){context.fillStyle=c; context.beginPath(); context.arc(cx,cy,1.2,0,Math.PI*2); context.fill();}
+  context.restore();
+}
+function drawCHPreview(){
+  const pw=previewCanvas.parentElement.clientWidth, ph=44, dpr=window.devicePixelRatio||1;
+  previewCanvas.width=pw*dpr; previewCanvas.height=ph*dpr;
+  previewCanvas.style.width=pw+'px'; previewCanvas.style.height=ph+'px';
+  pctx.setTransform(1,0,0,1,0,0); pctx.scale(dpr,dpr);
+  pctx.clearRect(0,0,pw,ph); drawCrosshair(pw/2,ph/2,pctx,1);
+}
+
+// ============ State ============
+const S={
+  dpi:800, sens:2.0, edpi:1600,
+  difficulty:'medium', mode:'flick',
+  phase:'idle',       // 'idle'|'countdown'|'running'|'done'
+  locked:false, crossX:0, crossY:0,
+  cw:0, ch:0, dpr:1,
+  startTime:0, animId:null,
+  flick:{targetX:0,targetY:0,radius:26,hits:0,misses:0,total:0,times:[]},
+  track:{targetX:0,targetY:0,radius:32,vx:0,vy:0,onFrames:0,totalFrames:0},
+  react:{trial:0,totalTrials:5,phase:'red',waitUntil:0,targetAppeared:0,times:[],early:0,jitter:[]},
+  // HB reaction (target appears → click anywhere)
+  hb:{trial:0,totalTrials:10,phase:'waiting',waitUntil:0,greenTime:0,targetX:0,targetY:0,radius:55,times:[],early:0,jitter:[]},
+  // 30 target challenge
+  t30:{targetX:0,targetY:0,radius:28,remaining:30,hits:0,times:[],startTime:0,lastHit:0},
+  results:{hits:0,accuracy:0,avgRT:0,score:0}
+};
+
+// ============ eDPI ============
+function updateEdpi(save){
+  S.dpi=parseInt($('dpiIn').value)||800; S.sens=parseFloat($('sensIn').value)||2.0;
+  S.edpi=Math.round(S.dpi*S.sens);
+  $('edpiVal').textContent=S.edpi; $('stEdpi').textContent=S.edpi;
+  if(save!==false) localStorage.setItem('rz_dpi',S.dpi+','+S.sens);
+}
+$('dpiIn').addEventListener('input',()=>updateEdpi());
+$('sensIn').addEventListener('input',()=>updateEdpi());
+
+// ============ Difficulty ============
+function getDiff(){
+  const d=S.difficulty;
+  if(S.mode==='flick'){
+    if(d==='low') return {radius:34, maxDist:300};
+    if(d==='medium') return {radius:24, maxDist:600};
+    return {radius:16, maxDist:1200};
+  }
+  if(S.mode==='tracking'){
+    if(d==='low') return {radius:40, maxSpeed:180};
+    if(d==='medium') return {radius:30, maxSpeed:300};
+    return {radius:22, maxSpeed:440};
+  }
+  if(S.mode==='reaction') return {}; // red→green, no target params
+  if(S.mode==='hbreaction') return {}; // HB reaction doesn't use difficulty
+  if(S.mode==='target30'){
+    if(d==='low') return {radius:38};
+    if(d==='medium') return {radius:26};
+    return {radius:16};
+  }
+  return {};
+}
+document.querySelectorAll('.diff-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); S.difficulty=b.dataset.diff;
+  });
+});
+
+// ============ Mode ============
+document.querySelectorAll('.mode-btn').forEach(b=>{
+  b.addEventListener('click',()=>{
+    if(S.phase==='running'||S.phase==='countdown') return;
+    document.querySelectorAll('.mode-btn').forEach(x=>x.classList.remove('sel'));
+    b.classList.add('sel'); S.mode=b.dataset.mode;
+    resetStats(); drawIdle();
+  });
+});
+
+// ============ Canvas ============
+let _lastW=0,_lastH=0,_lastDpr=0;
+function resizeCanvas(force){
+  const dpr=window.devicePixelRatio||1;
+  const w=window.innerWidth, h=window.innerHeight;
+  if(!force&&w===_lastW&&h===_lastH&&dpr===_lastDpr) return;
+  _lastW=w; _lastH=h; _lastDpr=dpr;
+  S.dpr=dpr; S.cw=w; S.ch=h;
+  canvas.width=w*dpr; canvas.height=h*dpr;
+  canvas.style.width=w+'px'; canvas.style.height=h+'px';
+  ctx.setTransform(1,0,0,1,0,0); ctx.scale(dpr,dpr);
+}
+window.addEventListener('resize',()=>{resizeCanvas(); if(S.phase==='idle')drawIdle(); drawCHPreview();});
+
+// ============ Pointer Lock ============
+function requestLock(){ if(!document.pointerLockElement) canvas.requestPointerLock(); }
+document.addEventListener('pointerlockchange',()=>{
+  S.locked=(document.pointerLockElement===canvas);
+  if(!S.locked && S.phase==='running') stopTraining();
+});
+
+document.addEventListener('mousemove',e=>{
+  if(S.locked && (S.phase==='running'||S.phase==='countdown')){
+    const factor=S.edpi/800;
+    S.crossX+=e.movementX*factor; S.crossY+=e.movementY*factor;
+    S.crossX=Math.max(0,Math.min(S.cw,S.crossX));
+    S.crossY=Math.max(0,Math.min(S.ch,S.crossY));
+  }
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!S.locked){ S.crossX=e.clientX; S.crossY=e.clientY; }
+});
+
+// Click handler for flick mode
+// mousedown for instant reaction timing (not click — avoids mouseup delay ~50-100ms)
+canvas.addEventListener('mousedown',e=>{
+  if(S.phase!=='running') return;
+  // Flick mode
+  if(S.mode==='flick'){
+    const f=S.flick;
+    if(f.appearTime<=0) return;
+    const d=Math.hypot(S.crossX-f.targetX, S.crossY-f.targetY);
+    if(d<=f.radius){
+      const rt=parseFloat((performance.now()-f.appearTime).toFixed(1));
+      f.hits++; f.times.push(rt); f.appearTime=0;
+      playHitSound(); spawnParticles(S.crossX,S.crossY);
+      spawnFlickTarget(); updateStats();
+    } else { f.misses++; updateStats(); }
+    return;
+  }
+  // Reaction test (red→green click anywhere)
+  if(S.mode==='reaction'){
+    const rt=S.react, now=performance.now();
+    if(rt.phase==='red'){
+      rt.early++; rt.phase='warn';
+      setTimeout(()=>initReactionTrial(),600); return;
+    }
+    if(rt.phase==='green'){
+      const rtMs=parseFloat((now-rt.targetAppeared).toFixed(1));
+      playClick();
+      rt.times.push(rtMs); rt.trial++;
+      if(rt.trial>=rt.totalTrials){
+        const avg=parseFloat((rt.times.reduce((a,b)=>a+b,0)/rt.times.length).toFixed(1));
+        const min=parseFloat(Math.min(...rt.times).toFixed(1));
+        const maxJitter=rt.jitter.length?parseFloat(Math.max(...rt.jitter).toFixed(1)):0;
+        const ts=rt.times.map((t,i)=>'#'+(i+1)+': '+t+'ms'+(t===min?' ⬇':'')).join(' | ');
+        ctx.fillStyle='rgba(0,0,0,0.9)'; ctx.fillRect(0,0,S.cw,S.ch);
+        ctx.save(); ctx.fillStyle='#00ff88'; ctx.font='bold 40px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+        ctx.fillText('平均 '+avg+'ms | 最低 '+min+'ms',S.cw/2,S.ch/2-24);
+        ctx.fillStyle='#ccc'; ctx.font='14px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif';
+        ctx.fillText(ts,S.cw/2,S.ch/2+8);
+        ctx.fillText('提前点击:'+rt.early+'次',S.cw/2,S.ch/2+28);
+        ctx.fillStyle='#ff8c00'; ctx.font='bold 16px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif';
+        ctx.fillText('测量误差: ±'+(maxJitter+8).toFixed(1)+'ms（渲染抖动'+maxJitter.toFixed(1)+'ms + 输入~8ms）',S.cw/2,S.ch/2+54);
+        ctx.restore();
+        S.results={hits:rt.times.length,accuracy:0,avgRT:avg,score:avg};
+        $('stHits').textContent=rt.times.length; $('stAcc').textContent='最低:'+min+'ms';
+        $('stRT').textContent=avg+'ms';
+        $('stScore').textContent=avg<200?'S':avg<250?'A':avg<300?'B':'C';
+        $('stTime').textContent='完成';
+        setTimeout(()=>stopTraining(),1500); return;
+      }
+      initReactionTrial(); // immediately next trial
+      $('stHits').textContent=rt.times.length; $('stRT').textContent=rtMs+'ms';
+      $('stAcc').textContent='最低:'+Math.min(...rt.times)+'ms';
+      $('stTime').textContent=rt.totalTrials-rt.trial+'次剩余';
+    }
+  }
+});
+
+// ============ Drawing ============
+function drawBg(){
+  const w=S.cw, h=S.ch;
+  ctx.fillStyle='#0a0d12'; ctx.fillRect(0,0,w,h);
+  ctx.strokeStyle='#151a24'; ctx.lineWidth=0.5;
+  const gs=50;
+  for(let x=gs;x<w;x+=gs){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,h);ctx.stroke();}
+  for(let y=gs;y<h;y+=gs){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(w,y);ctx.stroke();}
+}
+function drawTarget(x,y,r,color,glow,isHit){
+  ctx.save();
+  const gg=ctx.createRadialGradient(x,y,r*0.5,x,y,r*1.8);
+  gg.addColorStop(0,(glow||color)+'30'); gg.addColorStop(1,'transparent');
+  ctx.fillStyle=gg; ctx.beginPath(); ctx.arc(x,y,r*1.8,0,Math.PI*2); ctx.fill();
+  const g=ctx.createRadialGradient(x-r*0.2,y-r*0.2,r*0.04,x,y,r);
+  g.addColorStop(0,isHit?'#ffcc00':'#ff6666');
+  g.addColorStop(0.55,isHit?'#ff8800':color); g.addColorStop(1,'#660000');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=isHit?'#fff':(glow||color)+'88'; ctx.lineWidth=2; ctx.stroke();
+  ctx.restore();
+}
+function drawHUD(line1,line2){
+  const topH=60;
+  ctx.save();
+  ctx.fillStyle='#fff'; ctx.font='bold 22px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign='left'; ctx.fillText(line1,24,topH+4);
+  if(line2){ctx.fillStyle='#8b93a5'; ctx.font='13px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif'; ctx.fillText(line2,24,topH+26);}
+  ctx.restore();
+}
+function drawTimer(remaining){
+  const sec=Math.max(0,remaining/1000);
+  ctx.save();
+  ctx.fillStyle=sec<=5?'#ff4444':'#fff';
+  ctx.font='bold 28px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign='right'; ctx.fillText(sec.toFixed(1)+'s',S.cw-24,58);
+  ctx.restore();
+}
+function drawIdle(){
+  resizeCanvas(); S.crossX=S.cw/2; S.crossY=S.ch/2;
+  drawBg();
+  drawTarget(S.cw/2,S.ch/2,22,'#f0883e','#f0883e');
+  ctx.save(); ctx.fillStyle='#8b93a5';
+  ctx.font='16px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='center';
+  ctx.fillText('按 Enter 开始训练 | 鼠标碰到即触发',S.cw/2,S.ch/2+48);
+  ctx.restore();
+  overlayBig.style.display='none';
+}
+// Click sound (Web Audio API — synthetic crisp click)
+let _audioCtx=null;
+function playClick(){
+  if(!_audioCtx) _audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const ctx=_audioCtx, now=ctx.currentTime;
+  // Two oscillators for a crisp "tick" sound
+  const o1=ctx.createOscillator(), o2=ctx.createOscillator();
+  const g1=ctx.createGain(), g2=ctx.createGain();
+  o1.type='sine'; o1.frequency.setValueAtTime(1800,now); o1.frequency.exponentialRampToValueAtTime(800,now+0.04);
+  o2.type='sine'; o2.frequency.setValueAtTime(2400,now); o2.frequency.exponentialRampToValueAtTime(600,now+0.03);
+  g1.gain.setValueAtTime(0.25,now); g1.gain.exponentialRampToValueAtTime(0.001,now+0.05);
+  g2.gain.setValueAtTime(0.15,now); g2.gain.exponentialRampToValueAtTime(0.001,now+0.04);
+  o1.connect(g1); g1.connect(ctx.destination);
+  o2.connect(g2); g2.connect(ctx.destination);
+  o1.start(now); o1.stop(now+0.06);
+  o2.start(now); o2.stop(now+0.05);
+}
+function playHitSound(){
+  if(!_audioCtx) _audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  const ctx=_audioCtx, now=ctx.currentTime;
+  const o=ctx.createOscillator(), g=ctx.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(1200,now); o.frequency.exponentialRampToValueAtTime(400,now+0.08);
+  g.gain.setValueAtTime(0.3,now); g.gain.exponentialRampToValueAtTime(0.001,now+0.1);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(now); o.stop(now+0.12);
+}
+
+function spawnParticles(x,y){
+  const cs=['#ffaa00','#ff8800','#ff6600','#ffcc00','#fff'];
+  for(let i=0;i<10;i++){
+    const p=document.createElement('div'); p.className='particle';
+    p.style.left=(x+(Math.random()-0.5)*40)+'px';
+    p.style.top=(y+(Math.random()-0.5)*40)+'px';
+    p.style.background=cs[Math.floor(Math.random()*cs.length)];
+    p.style.width=(2+Math.random()*5)+'px'; p.style.height=p.style.width;
+    p.style.animationDuration=(0.25+Math.random()*0.4)+'s';
+    document.body.appendChild(p); setTimeout(()=>p.remove(),700);
+  }
+}
+
+// ============ Flick (click-to-hit) ============
+function spawnFlickTarget(){
+  const w=S.cw, h=S.ch, m=70;
+  const diff=getDiff(); S.flick.radius=diff.radius;
+  let x,y,d,attempts=0;
+  do{
+    x=m+Math.random()*(w-2*m); y=m+Math.random()*(h-2*m);
+    d=Math.hypot(x-S.crossX, y-S.crossY); attempts++;
+  }while((d<80||d>diff.maxDist)&&attempts<60);
+  S.flick.targetX=x; S.flick.targetY=y;
+  S.flick.appearTime=performance.now(); S.flick.total++;
+}
+function renderFlick(now){
+  drawBg();
+  const f=S.flick;
+  const onT=S.locked&&f.appearTime>0&&Math.hypot(S.crossX-f.targetX,S.crossY-f.targetY)<=f.radius;
+  drawTarget(f.targetX,f.targetY,f.radius,onT?'#ffaa00':'#ff5722','#ff8c00',onT);
+  if(S.locked) drawCrosshair(S.crossX,S.crossY,ctx,1);
+  const rem=Math.max(0,60000-(now-S.startTime));
+  drawTimer(rem);
+  const avg=f.times.length?parseFloat((f.times.reduce((a,b)=>a+b,0)/f.times.length).toFixed(1)):0;
+  const acc=f.total>0?Math.round(f.hits/f.total*100):0;
+  drawHUD('定位训练 ['+({low:'低',medium:'中',high:'高'})[S.difficulty]+']  |  点击鼠标射击!',
+    '命中:'+f.hits+' | 未中:'+f.misses+' | 精准:'+acc+'% | 均:'+avg+'ms');
+  $('stHits').textContent=f.hits; $('stAcc').textContent=acc+'%';
+  $('stTime').textContent=(rem/1000).toFixed(1)+'s';
+  $('stRT').textContent=avg?avg+'ms':'--';
+}
+
+// ============ Tracking (hover-to-track) ============
+function initTrackTarget(){
+  const t=S.track, diff=getDiff();
+  t.radius=diff.radius; t.maxSpeed=diff.maxSpeed;
+  t.targetX=S.cw/2; t.targetY=S.ch/2;
+  const a=Math.random()*Math.PI*2, sp=80+Math.random()*120;
+  t.vx=Math.cos(a)*sp; t.vy=Math.sin(a)*sp;
+}
+let _lt=0;
+function renderTracking(now){
+  drawBg();
+  const dt=Math.min(0.06,(now-(_lt||now))/1000); _lt=now;
+  const t=S.track, w=S.cw, h=S.ch, m=70;
+  const ax=Math.sin(now*0.002)*0.5+Math.cos(now*0.0032)*0.4+(Math.random()-0.5)*0.35;
+  const ay=Math.cos(now*0.0023)*0.5+Math.sin(now*0.0028)*0.4+(Math.random()-0.5)*0.35;
+  t.vx+=ax*500*dt; t.vy+=ay*500*dt;
+  const sp=Math.hypot(t.vx,t.vy);
+  if(sp>t.maxSpeed){t.vx=t.vx/sp*t.maxSpeed; t.vy=t.vy/sp*t.maxSpeed;}
+  if(sp<50){t.vx=t.vx/sp*50; t.vy=t.vy/sp*50;}
+  t.targetX+=t.vx*dt; t.targetY+=t.vy*dt;
+  if(t.targetX<m){t.targetX=m; t.vx=Math.abs(t.vx)*0.85;}
+  if(t.targetX>w-m){t.targetX=w-m; t.vx=-Math.abs(t.vx)*0.85;}
+  if(t.targetY<m){t.targetY=m; t.vy=Math.abs(t.vy)*0.85;}
+  if(t.targetY>h-m){t.targetY=h-m; t.vy=-Math.abs(t.vy)*0.85;}
+  const d=Math.hypot(S.crossX-t.targetX, S.crossY-t.targetY);
+  if(d<=t.radius) t.onFrames++; t.totalFrames++;
+  const onT=d<=t.radius;
+  drawTarget(t.targetX,t.targetY,t.radius,onT?'#ffaa00':'#ff4444','#ff6666',onT);
+  if(S.locked) drawCrosshair(S.crossX,S.crossY,ctx,1);
+  const rem=Math.max(0,60000-(now-S.startTime));
+  drawTimer(rem);
+  const acc=t.totalFrames>0?Math.round(t.onFrames/t.totalFrames*100):0;
+  drawHUD('跟枪训练 ['+({low:'低',medium:'中',high:'高'})[S.difficulty]+']  |  鼠标跟踪目标',
+    '精准度:'+acc+'% | 在靶帧:'+t.onFrames);
+  $('stHits').textContent=t.onFrames; $('stAcc').textContent=acc+'%';
+  $('stTime').textContent=(rem/1000).toFixed(1)+'s'; $('stRT').textContent='--';
+}
+
+// ============ Reaction Test (red→green screen, click anywhere, 10 trials) ============
+function initReactionTrial(){
+  const rt=S.react; rt.phase='red';
+  rt.waitUntil=performance.now()+800+Math.random()*4200; // 0.8-5s
+}
+function renderReaction(now){
+  // Skip grid for fastest rendering during timing-critical test
+  ctx.fillStyle='#0a0d12'; ctx.fillRect(0,0,S.cw,S.ch);
+  const rt=S.react, cx=S.cw/2, cy=S.ch/2;
+  if(rt.phase==='red'){
+    if(now>=rt.waitUntil){rt.phase='green'; rt.targetAppeared=now; rt.jitter.push(parseFloat((now-rt.waitUntil).toFixed(1)));}
+    else{
+      // No hints during wait — just dark background
+      ctx.save(); ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.font='13px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='center';
+      ctx.fillText('第 '+(rt.trial+1)+'/'+rt.totalTrials+' 次',cx,S.ch-30); ctx.restore();
+      return;
+    }
+  }
+  if(rt.phase==='warn'){
+    ctx.fillStyle='rgba(180,0,0,0.8)'; ctx.fillRect(0,0,S.cw,S.ch);
+    ctx.save(); ctx.fillStyle='#fff'; ctx.font='bold 34px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+    ctx.fillText('不要提前枪! 等变绿再点击',cx,cy);
+    ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='16px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif';
+    ctx.fillText('重新开始本次...',cx,cy+30); ctx.restore();
+    return;
+  }
+  if(rt.phase==='green'){
+    // Minimal rendering for fastest response — just green fill, no grid
+    ctx.fillStyle='#4caf50'; ctx.fillRect(0,0,S.cw,S.ch);
+    ctx.fillStyle='#fff'; ctx.font='bold 46px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+    ctx.fillText('点击!',cx,cy);
+  }
+}
+
+// ============ Human Benchmark Reaction (target appears → click anywhere, 10 trials, no hints) ============
+function initHBTrial(){
+  const h=S.hb; h.phase='waiting';
+  h.waitUntil=performance.now()+800+Math.random()*4200;
+  h.targetX=100+Math.random()*(S.cw-200);
+  h.targetY=100+Math.random()*(S.ch-200);
+  h.radius=55;
+}
+function renderHBReaction(now){
+  drawBg();
+  const h=S.hb, cx=S.cw/2, cy=S.ch/2;
+  if(h.phase==='waiting'){
+    if(now>=h.waitUntil){h.phase='target'; h.greenTime=now; h.jitter.push(parseFloat((now-h.waitUntil).toFixed(1)));}
+    else{
+      // No hints — just subtle counter at bottom
+      ctx.save(); ctx.fillStyle='rgba(255,255,255,0.12)'; ctx.font='13px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+      ctx.fillText('第 '+(h.trial+1)+'/'+h.totalTrials+' 次',cx,S.ch-30); ctx.restore();
+      return;
+    }
+  }
+  if(h.phase==='warn'){
+    ctx.fillStyle='rgba(180,0,0,0.8)'; ctx.fillRect(0,0,S.cw,S.ch);
+    ctx.save(); ctx.fillStyle='#fff'; ctx.font='bold 34px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+    ctx.fillText('不要提前枪! 等目标出现再点击',cx,cy);
+    ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='16px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif';
+    ctx.fillText('重新开始本次...',cx,cy+30); ctx.restore();
+    return;
+  }
+  if(h.phase==='target'){
+    drawTarget(h.targetX,h.targetY,h.radius,'#ff4444','#ff6666',false);
+    ctx.save(); ctx.fillStyle='#fff'; ctx.font='bold 30px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+    ctx.fillText('点击任意位置!',cx,S.ch-60); ctx.restore();
+  }
+}
+// HB reaction click handler
+canvas.addEventListener('mousedown',e=>{
+  if(S.phase!=='running'||S.mode!=='hbreaction') return;
+  const h=S.hb, now=performance.now();
+  if(h.phase==='waiting'){
+    h.early++; h.phase='warn';
+    setTimeout(()=>initHBTrial(),600); return;
+  }
+  if(h.phase==='target'){
+    const rt=parseFloat((now-h.greenTime).toFixed(1));
+    playClick();
+    h.times.push(rt); h.trial++;
+    if(h.trial>=h.totalTrials){
+      const avg=parseFloat((h.times.reduce((a,b)=>a+b,0)/h.times.length).toFixed(1));
+      const min=parseFloat(Math.min(...h.times).toFixed(1));
+      const maxJitter=h.jitter.length?parseFloat(Math.max(...h.jitter).toFixed(1)):0;
+      const timesStr=h.times.map((t,i)=>'#'+(i+1)+': '+t+'ms'+(t===min?' ⬇最低':'')).join(' | ');
+      ctx.fillStyle='rgba(0,0,0,0.9)'; ctx.fillRect(0,0,S.cw,S.ch);
+      ctx.save(); ctx.fillStyle='#00ff88'; ctx.font='bold 38px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+      ctx.fillText('平均 '+avg+'ms | 最低 '+min+'ms',S.cw/2,S.ch/2-24);
+      ctx.fillStyle='#ccc'; ctx.font='13px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif';
+      ctx.fillText(timesStr,S.cw/2,S.ch/2+8);
+      ctx.fillText('提前点击:'+h.early+'次',S.cw/2,S.ch/2+28);
+      ctx.fillStyle='#ff8c00'; ctx.font='bold 16px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif';
+      ctx.fillText('测量误差: ±'+(maxJitter+8).toFixed(1)+'ms（渲染抖动'+maxJitter.toFixed(1)+'ms + 输入~8ms）',S.cw/2,S.ch/2+54);
+      ctx.restore();
+      S.results={hits:h.times.length,accuracy:0,avgRT:avg,score:avg};
+      $('stHits').textContent=h.times.length; $('stAcc').textContent='最低:'+min+'ms';
+      $('stRT').textContent=avg+'ms';
+      $('stScore').textContent=avg<200?'S':avg<250?'A':avg<300?'B':'C';
+      $('stTime').textContent='完成';
+      setTimeout(()=>stopTraining(),1800); return;
+    }
+    // Show result briefly then immediately go to red
+    h.phase='red'; initHBTrial(); // immediately start next trial
+    $('stHits').textContent=h.times.length;
+    $('stRT').textContent=rt+'ms';
+    $('stAcc').textContent='最低:'+Math.min(...h.times)+'ms';
+    $('stTime').textContent=h.totalTrials-h.trial+'次剩余';
+  }
+});
+
+// ============ 30-Target Challenge (Human Benchmark Aim Trainer) ============
+function spawnT30Target(){
+  const w=S.cw, h=S.ch, m=70;
+  const diff=getDiff(); S.t30.radius=diff.radius||24;
+  let x,y,d,attempts=0;
+  do{
+    x=m+Math.random()*(w-2*m); y=m+Math.random()*(h-2*m);
+    d=Math.hypot(x-S.crossX, y-S.crossY); attempts++;
+  }while(d<60&&attempts<40);
+  S.t30.targetX=x; S.t30.targetY=y;
+}
+function renderTarget30(now){
+  drawBg();
+  const t=S.t30;
+  const onT=S.locked&&Math.hypot(S.crossX-t.targetX,S.crossY-t.targetY)<=t.radius;
+  drawTarget(t.targetX,t.targetY,t.radius,onT?'#ffaa00':'#ff5722','#ff8c00',onT);
+  if(S.locked) drawCrosshair(S.crossX,S.crossY,ctx,1);
+  const elapsed=(now-S.startTime)/1000;
+  const avgPer=t.hits>0?Math.round((now-S.startTime)/t.hits):0;
+  ctx.save();
+  ctx.fillStyle='#fff'; ctx.font='bold 22px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.textAlign='left'; ctx.fillText('剩余: '+t.remaining+' 个',24,58);
+  ctx.fillStyle='#8b93a5'; ctx.font='14px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif';
+  ctx.fillText('已命中:'+t.hits+' | 用时:'+elapsed.toFixed(1)+'s | 均:'+avgPer+'ms',24,78);
+  ctx.restore();
+  drawHUD('🎯 30目标挑战 ['+({low:'低',medium:'中',high:'高'})[S.difficulty]+']',
+    '点击目标完成挑战!');
+  $('stHits').textContent=t.hits; $('stAcc').textContent=t.remaining+'剩';
+  $('stTime').textContent=elapsed.toFixed(1)+'s';
+  $('stRT').textContent=avgPer?avgPer+'ms':'--';
+}
+// Click handler for 30-target (appended to existing canvas click)
+const _origCanvasClick = canvas.onclick;
+canvas.addEventListener('mousedown',function t30Click(e){
+  if(S.phase!=='running'||S.mode!=='target30') return;
+  const t=S.t30, now=performance.now();
+  const d=Math.hypot(S.crossX-t.targetX,S.crossY-t.targetY);
+  if(d<=t.radius){
+    e.stopPropagation();
+    const hitTime=now-(t.lastHit||S.startTime); t.lastHit=now;
+    t.hits++; t.times.push(hitTime); t.remaining--;
+    playHitSound(); spawnParticles(S.crossX,S.crossY);
+    if(t.remaining<=0){
+      const total=(now-S.startTime)/1000;
+      const avg=parseFloat((t.times.reduce((a,b)=>a+b,0)/t.times.length).toFixed(1));
+      $('stHits').textContent=30; $('stAcc').textContent='100%';
+      $('stTime').textContent=total.toFixed(1)+'s';
+      $('stRT').textContent=avg+'ms';
+      $('stScore').textContent=total<20?'S':total<30?'A':total<45?'B':'C';
+      S.results={hits:30,accuracy:100,avgRT:avg,score:Math.round(total*10)};
+      setTimeout(()=>stopTraining(),800); return;
+    }
+    spawnT30Target();
+    updateT30Stats();
+  }
+});
+function updateT30Stats(){
+  const t=S.t30;
+  $('stHits').textContent=t.hits; $('stAcc').textContent=t.remaining+'剩';
+}
+
+// ============ Stats ============
+function updateStats(){
+  if(S.mode==='flick'){
+    const f=S.flick, acc=f.total>0?Math.round(f.hits/f.total*100):0;
+    $('stHits').textContent=f.hits; $('stAcc').textContent=acc+'%';
+    $('stRT').textContent=f.times.length?parseFloat((f.times.reduce((a,b)=>a+b,0)/f.times.length).toFixed(1))+'ms':'--';
+  }
+}
+function resetStats(){
+  $('stScore').textContent='--'; $('stHits').textContent='0';
+  $('stAcc').textContent='--'; $('stRT').textContent='--';
+  $('stTime').textContent=S.mode==='reaction'?'--':'60.0s';
+}
+
+// ============ Countdown ============
+function startCountdown(cb){
+  S.phase='countdown'; S.countdownStart=performance.now();
+  overlayBig.style.display='block';
+  requestLock();
+  function tick(){
+    const rem=3000-(performance.now()-S.countdownStart);
+    if(rem<=0){
+      overlayBig.textContent='GO!'; overlayBig.style.color='#00ff88';
+      setTimeout(()=>{overlayBig.style.display='none'; overlayBig.style.color='#fff'; cb();},350);
+      return;
+    }
+    const n=Math.ceil(rem/1000);
+    overlayBig.textContent=n; overlayBig.style.color=n===1?'#ff4444':'#fff';
+    S.animId=requestAnimationFrame(tick);
+  }
+  S.animId=requestAnimationFrame(tick);
+}
+
+// ============ Start / Stop ============
+function startTraining(){
+  if(S.phase==='running'||S.phase==='countdown') return;
+  cancelAnimationFrame(S.animId); resizeCanvas(); readCH(); updateEdpi();
+  resetStats(); S.crossX=S.cw/2; S.crossY=S.ch/2;
+
+  if(S.mode==='flick'){
+    S.flick={targetX:0,targetY:0,radius:26,hits:0,misses:0,total:0,times:[]};
+    spawnFlickTarget(); $('stTime').textContent='60.0s';
+  }else if(S.mode==='tracking'){
+    S.track={targetX:0,targetY:0,radius:32,vx:0,vy:0,onFrames:0,totalFrames:0};
+    initTrackTarget(); _lt=0; $('stTime').textContent='60.0s';
+  }else if(S.mode==='reaction'){
+    S.react={trial:0,totalTrials:5,phase:'red',waitUntil:0,targetAppeared:0,times:[],early:0,jitter:[]};
+    $('stTime').textContent='5次';
+    // initReactionTrial() called after countdown
+  }else if(S.mode==='hbreaction'){
+    S.hb={trial:0,totalTrials:10,phase:'waiting',waitUntil:0,greenTime:0,targetX:0,targetY:0,radius:55,times:[],early:0,jitter:[]};
+    $('stTime').textContent='10次';
+    // initHBTrial() called after countdown
+  }else if(S.mode==='target30'){
+    S.t30={targetX:0,targetY:0,radius:28,remaining:30,hits:0,times:[],startTime:0,lastHit:0};
+    spawnT30Target(); $('stTime').textContent='0.0s';
+  }
+  $('btnStart').disabled=true; $('btnStop').style.display='inline-block';
+  $('lbFloat').style.display='none';
+  startCountdown(()=>{
+    S.phase='running'; S.startTime=performance.now();
+    if(S.mode==='reaction') initReactionTrial();
+    if(S.mode==='hbreaction') initHBTrial();
+    gameLoop();
+  });
+}
+
+function stopTraining(){
+  S.phase='done'; cancelAnimationFrame(S.animId);
+  $('btnStart').disabled=false; $('btnStop').style.display='none';
+  $('lbFloat').style.display='flex';
+  if(document.pointerLockElement) document.exitPointerLock();
+  S.locked=false;
+  let score;
+  if(S.mode==='flick'){
+    const f=S.flick, acc=f.total>0?Math.round(f.hits/f.total*100):0;
+    const avg=f.times.length?parseFloat((f.times.reduce((a,b)=>a+b,0)/f.times.length).toFixed(1)):0;
+    score=Math.round(Math.max(0, f.hits*(acc/100)*Math.max(0.5,1-(avg-300)/600)*10 - f.misses*3));
+    S.results={hits:f.hits,misses:f.misses,accuracy:acc,avgRT:avg,score};
+    $('stScore').textContent=score;
+    addScore('flick',S.difficulty,score,f.hits,acc,avg);
+    showPopup('定位训练',score+'分',
+      '<span>命中 '+f.hits+'</span><span>精准 '+acc+'%</span><span>均速 '+avg+'ms</span><span>未中 '+f.misses+'</span>');
+  }else if(S.mode==='tracking'){
+    const t=S.track, acc=t.totalFrames>0?Math.round(t.onFrames/t.totalFrames*100):0;
+    score=Math.round(acc*1.5); S.results={hits:t.onFrames,accuracy:acc,avgRT:0,score};
+    $('stScore').textContent=score;
+    addScore('tracking',S.difficulty,score,t.onFrames,acc,0);
+    showPopup('跟枪训练',score+'分',
+      '<span>在靶帧 '+t.onFrames+'</span><span>精准 '+acc+'%</span>');
+  }else if(S.mode==='hbreaction'){
+    const h=S.hb, avg=h.times.length?parseFloat((h.times.reduce((a,b)=>a+b,0)/h.times.length).toFixed(1)):0;
+    S.results={hits:h.times.length,accuracy:0,avgRT:avg,score:avg};
+    $('stScore').textContent=avg<200?'S':avg<250?'A':avg<300?'B':'C';
+    addScore('hbreaction','medium',avg<200?95:avg<250?80:avg<300?65:50,h.times.length,0,avg);
+    showPopup('反应测试',avg+'ms',
+      '<span>次数 '+h.times.length+'</span><span>最低 '+parseFloat(Math.min(...h.times).toFixed(1))+'ms</span><span>提前 '+h.early+'</span>',
+      '误差 ±'+(parseFloat(Math.max(...h.jitter).toFixed(1))+8)+'ms');
+  }else if(S.mode==='target30'){
+    const total=(performance.now()-S.startTime)/1000;
+    const tscore=Math.round(Math.max(0,100-total*3));
+    S.results={hits:S.t30.hits,accuracy:Math.round(S.t30.hits/30*100),avgRT:0,score:tscore};
+    $('stScore').textContent=total<20?'S':total<30?'A':total<45?'B':'C';
+    addScore('target30',S.difficulty,tscore,S.t30.hits,Math.round(S.t30.hits/30*100),0);
+    showPopup('30靶挑战',total.toFixed(1)+'s',
+      '<span>命中 '+S.t30.hits+'/30</span><span>均速 '+(S.t30.times.length?Math.round(S.t30.times.reduce((a,b)=>a+b,0)/S.t30.times.length):0)+'ms</span>');
+  }else{
+    const a=S.react.times.length?parseFloat((S.react.times.reduce((a,b)=>a+b,0)/S.react.times.length).toFixed(1)):0;
+    S.results.score=a; $('stScore').textContent=a<200?'S':a<250?'A':a<300?'B':'C';
+    addScore('reaction','medium',a<200?95:a<250?80:a<300?65:50,S.react.times.length,0,a);
+    showPopup('HB反应',a+'ms',
+      '<span>次数 '+S.react.times.length+'</span><span>最低 '+parseFloat(Math.min(...S.react.times).toFixed(1))+'ms</span><span>提前 '+S.react.early+'</span>',
+      '误差 ±'+(S.react.jitter.length?parseFloat((Math.max(...S.react.jitter)+8).toFixed(1)):'~15')+'ms');
+  }
+  setTimeout(()=>{if(S.phase==='done'){S.phase='idle'; drawIdle(); resetStats();}},1500);
+}
+
+// ============ Game Loop ============
+function gameLoop(){
+  if(S.phase!=='running') return;
+  if(!document.pointerLockElement){stopTraining(); return;}
+  const now=performance.now(); resizeCanvas();
+  if(S.mode!=='reaction'&&S.mode!=='hbreaction'&&S.mode!=='target30' && 60000-(now-S.startTime)<=0){stopTraining(); return;}
+  if(S.mode==='flick') renderFlick(now);
+  else if(S.mode==='tracking') renderTracking(now);
+  else if(S.mode==='reaction') renderReaction(now);
+  else if(S.mode==='hbreaction') renderHBReaction(now);
+  else if(S.mode==='target30') renderTarget30(now);
+  S.animId=requestAnimationFrame(gameLoop);
+}
+
+// ============ Events ============
+$('btnStart').addEventListener('click',startTraining);
+$('btnStop').addEventListener('click',stopTraining);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&S.phase==='idle') startTraining();
+  if(e.key==='Escape'&&(S.phase==='running'||S.phase==='countdown')) stopTraining();
+});
+
+// Crosshair panel toggle
+$('chToggle').addEventListener('click',()=>{
+  $('chPanel').classList.toggle('hidden');
+  if(!$('chPanel').classList.contains('hidden')) drawCHPreview();
+});
+['chSize','chGap','chThick'].forEach(id=>$(id).addEventListener('input',readCH));
+['chOutline','chDot'].forEach(id=>$(id).addEventListener('click',function(){this.classList.toggle('on');readCH();}));
+document.querySelectorAll('.ch-dot').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.ch-dot').forEach(e=>e.classList.remove('sel'));
+    el.classList.add('sel'); readCH();
+  });
+});
+
+// ============ Results Popup ============
+function showPopup(title,score,rowHTML,err){
+  $('rpTitle').textContent=title;
+  $('rpScore').textContent=score;
+  $('rpRow').innerHTML=rowHTML||'';
+  $('rpErr').textContent=err||'';
+  $('resultPopup').classList.add('show');
+  // Auto-close on click outside or ESC
+  $('resultPopup').onclick=function(e){if(e.target===this)this.classList.remove('show');};
+}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')$('resultPopup').classList.remove('show');});
+
+// ============ Leaderboard ============
+const LB_KEY='anuket_lb_v3';
+localStorage.removeItem('anuket_lb');
+localStorage.removeItem('anuket_lb_v2');
+function loadLB(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[];}catch(e){return[];}}
+function saveLB(data){localStorage.setItem(LB_KEY,JSON.stringify(data));}
+function addScore(mode,diff,score,hits,acc,rt){
+  const name=$('nameIn').value.trim()||'Player';
+  const data=loadLB();
+  // Each person keeps only their single best record across all modes
+  const idx=data.findIndex(d=>d.name===name);
+  if(idx!==-1){
+    if(score>data[idx].score){ data[idx]={name,mode,diff,score,hits,acc,rt:rt||0,date:new Date().toLocaleDateString()}; }
+    else return;
+  }else{
+    data.push({name,mode,diff,score,hits,acc,rt:rt||0,date:new Date().toLocaleDateString()});
+  }
+  data.sort((a,b)=>b.score-a.score);
+  if(data.length>200) data.length=200;
+  saveLB(data); renderLB(mode);
+}
+function renderLB(filterMode){
+  const data=loadLB();
+  const modes=['flick','tracking','reaction','hbreaction','target30'];
+  const names={flick:'定位',tracking:'跟枪',reaction:'HB反应',hbreaction:'反应',target30:'30靶'};
+  const diffs={low:'低',medium:'中',high:'高'};
+  let tabs='<button class=\"lb-tab sel\" data-lb=\"all\">全部</button>';
+  modes.forEach(m=>{tabs+='<button class=\"lb-tab\" data-lb=\"'+m+'\">'+names[m]+'</button>';});
+  $('lbTabs').innerHTML=tabs;
+  const filtered=filterMode&&filterMode!=='all'?data.filter(d=>d.mode===filterMode):data;
+  const top=filtered.slice(0,15);
+  let html='';
+  if(top.length===0){html='<div style=\"color:var(--text2);font-size:0.76rem;padding:8px;\">暂无记录</div>';}
+  else{
+    top.forEach((d,i)=>{
+      const rk=i===0?'gold':'';
+      html+='<div class=\"lb-entry\"><span class=\"rank '+rk+'\">#'+(i+1)+'</span>';
+      html+='<div class=\"info\"><div class=\"mode\"><b>'+d.name+'</b> — '+diffs[d.diff||'medium']+' '+names[d.mode]+'</div>';
+      html+='<div class=\"detail\">'+d.score+'分 | 命中:'+d.hits+(d.rt?' | '+d.rt+'ms':'')+' | '+d.date+'</div></div>';
+      html+='<span class=\"score\">'+d.score+'</span></div>';
+    });
+  }
+  $('lbList').innerHTML=html;
+  document.querySelectorAll('.lb-tab').forEach(t=>{
+    t.addEventListener('click',()=>{
+      document.querySelectorAll('.lb-tab').forEach(x=>x.classList.remove('sel'));
+      t.classList.add('sel'); renderLB(t.dataset.lb);
+    });
+  });
+}
+function openLB(){$('lbModal').classList.add('show');renderLB('all');}
+$('lbBtn').addEventListener('click',openLB);
+$('lbFloat').addEventListener('click',openLB);
+$('lbModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+
+// ============ Init ============
+function init(){
+  // Restore saved name
+  const savedName=localStorage.getItem('anuket_name');
+  if(savedName){$('nameIn').value=savedName;}
+  $('nameIn').addEventListener('change',()=>localStorage.setItem('anuket_name',$('nameIn').value.trim()));
+  // Restore saved CS2 DPI/sens
+  const savedDPI=localStorage.getItem('rz_dpi');
+  if(savedDPI){const p=savedDPI.split(',');$('dpiIn').value=p[0];$('sensIn').value=p[1];}
+  updateEdpi(false); readCH();
+  document.querySelector('.ch-dot[data-color="#00ff88"]').classList.add('sel');
+  resizeCanvas(); drawIdle(); drawCHPreview();
+}
+init();
+console.log('Rz_Tools');
+console.log('  定位: 点击射击 | 跟枪: 鼠标跟踪 | HB反应: 目标出现即点');
+console.log('  eDPI:',S.edpi,'| Pointer Lock + eDPI缩放');
+</script>
+</body>
+</html>

@@ -43,6 +43,7 @@ body{
 
 /* Canvas fills everything */
 #gameCanvas{display:block; position:fixed; inset:0; z-index:0;}
+#gameCanvas.hide-cursor{cursor:none;}
 .canvas-overlay{
   position:fixed; inset:0; pointer-events:none; z-index:1; display:flex;
   flex-direction:column; align-items:center; justify-content:center;
@@ -880,6 +881,7 @@ function startTraining(){
   }
   $('btnStart').disabled=true; $('btnStop').style.display='inline-block';
   $('lbFloat').style.display='none';
+  if(usePointerLock()) canvas.classList.add('hide-cursor');
   startCountdown(()=>{
     S.phase='running'; S.startTime=performance.now();
     if(S.mode==='reaction') initReactionTrial();
@@ -892,6 +894,7 @@ function stopTraining(){
   S.phase='done'; cancelAnimationFrame(S.animId);
   $('btnStart').disabled=false; $('btnStop').style.display='none';
   $('lbFloat').style.display='flex';
+  canvas.classList.remove('hide-cursor');
   if(document.pointerLockElement) document.exitPointerLock();
   S.locked=false;
   let score;

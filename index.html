@@ -540,14 +540,16 @@ function drawIdle(){
   ctx.save(); ctx.fillStyle='#8b93a5';
   ctx.font='16px sans-serif'; ctx.textAlign='center';
   ctx.fillText('Enter 开始 | PC/PE 切换',S.cw/2,S.ch/2+48);
-  // Personal best
+  // Personal best (async)
   const name=$('nameIn').value.trim()||'Player';
-  const data=loadLB(), pb=data.find(d=>d.name===name);
-  if(pb){
-    const names={flick:'定位',tracking:'跟枪',reaction:'HB反应',hbreaction:'反应',target30:'30靶'};
-    ctx.fillStyle='#ffd700'; ctx.font='bold 14px sans-serif';
-    ctx.fillText('最佳: '+names[pb.mode]+' '+pb.score+(pb.rt?' ('+pb.rt+'ms)':'分'),S.cw/2,S.ch/2+70);
-  }
+  loadLB(data=>{
+    const pb=data.find(d=>d.name===name);
+    if(pb&&S.phase==='idle'){
+      const names={flick:'定位',tracking:'跟枪',reaction:'HB反应',hbreaction:'反应',target30:'30靶'};
+      ctx.fillStyle='#ffd700'; ctx.font='bold 14px sans-serif';
+      ctx.fillText('最佳: '+names[pb.mode]+' '+pb.score+(pb.rt?' ('+pb.rt+'ms)':'分'),S.cw/2,S.ch/2+70);
+    }
+  });
   ctx.restore();
   overlayBig.style.display='none';
 }
@@ -1000,29 +1002,28 @@ function showPopup(title,score,rowHTML,err){
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('resultPopup').classList.remove('show');});
 
 // ============ Leaderboard ============
-const LB_KEY='anuket_lb_v4';
-localStorage.removeItem('anuket_lb');
-localStorage.removeItem('anuket_lb_v2');
-localStorage.removeItem('anuket_lb_v3');
-function loadLB(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[];}catch(e){return[];}}
-function saveLB(data){localStorage.setItem(LB_KEY,JSON.stringify(data));}
+const LB_API='https://jsonblob.com/api/jsonBlob/019fb192-19a9-751e-a737-2259d8c1c52b';
+function loadLB(cb){fetch(LB_API).then(r=>r.json()).then(d=>cb(d||[])).catch(()=>cb([]));}
+function saveLB(data,cb){
+  fetch(LB_API,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)})
+  .then(()=>{if(cb)cb();}).catch(()=>{});
+}
 function addScore(mode,diff,score,hits,acc,rt){
   const name=$('nameIn').value.trim()||'Player';
-  const data=loadLB();
-  // Each person keeps only their single best record across all modes
-  const idx=data.findIndex(d=>d.name===name);
-  if(idx!==-1){
-    if(score>data[idx].score){ data[idx]={name,mode,diff,score,hits,acc,rt:rt||0,date:new Date().toLocaleDateString()}; }
-    else return;
-  }else{
-    data.push({name,mode,diff,score,hits,acc,rt:rt||0,date:new Date().toLocaleDateString()});
-  }
-  data.sort((a,b)=>b.score-a.score);
-  if(data.length>200) data.length=200;
-  saveLB(data); renderLB(mode);
+  loadLB(data=>{
+    const idx=data.findIndex(d=>d.name===name);
+    if(idx!==-1){
+      if(score>data[idx].score) data[idx]={name,mode,diff,score,hits,acc,rt:rt||0,date:new Date().toLocaleDateString()};
+      else {renderLB(mode,data); return;}
+    }else{
+      data.push({name,mode,diff,score,hits,acc,rt:rt||0,date:new Date().toLocaleDateString()});
+    }
+    data.sort((a,b)=>b.score-a.score);
+    if(data.length>200) data.length=200;
+    saveLB(data,()=>renderLB(mode,data));
+  });
 }
-function renderLB(filterMode){
-  const data=loadLB();
+function renderLB(filterMode,data){
   const modes=['flick','tracking','reaction','hbreaction','target30'];
   const names={flick:'定位',tracking:'跟枪',reaction:'HB反应',hbreaction:'反应',target30:'30靶'};
   const diffs={low:'低',medium:'中',high:'高'};
@@ -1050,7 +1051,7 @@ function renderLB(filterMode){
     });
   });
 }
-function openLB(){$('lbModal').classList.add('show');renderLB('all');}
+function openLB(){$('lbModal').classList.add('show');loadLB(d=>renderLB('all',d));}
 $('lbBtn').addEventListener('click',openLB);
 $('lbFloat').addEventListener('click',openLB);
 $('lbModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});

@@ -213,9 +213,9 @@ body{
   <span class="label">=</span><span class="edpi-val" id="edpiVal">1600</span><span class="label">eDPI</span><span class="label" style="color:var(--accent);font-weight:700;">CS2</span>
   <div class="sep"></div>
   <div class="mode-btns">
-    <button class="mode-btn sel" data-mode="flick">定位</button>
+    <button class="mode-btn" data-mode="flick">定位</button>
     <button class="mode-btn" data-mode="tracking">跟枪</button>
-    <button class="mode-btn" data-mode="reaction">HB反应</button>
+    <button class="mode-btn sel" data-mode="reaction">HB反应</button>
     <button class="mode-btn" data-mode="hbreaction">反应</button>
     <button class="mode-btn" data-mode="target30">30靶</button>
   </div>
@@ -334,7 +334,7 @@ function drawCHPreview(){
 // ============ State ============
 const S={
   dpi:800, sens:2.0, edpi:1600,
-  difficulty:'medium', mode:'flick',
+  difficulty:'medium', mode:'reaction',
   phase:'idle',       // 'idle'|'countdown'|'running'|'done'
   locked:false, crossX:0, crossY:0,
   cw:0, ch:0, dpr:1,

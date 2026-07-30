@@ -606,7 +606,7 @@ function spawnFlickTarget(){
   S.flick.appearTime=performance.now(); S.flick.total++;
 }
 function renderFlick(now){
-  drawBg();
+  ctx.fillStyle='#0a0d12'; ctx.fillRect(0,0,S.cw,S.ch); // Flat bg, no grid
   const f=S.flick;
   const onT=S.locked&&f.appearTime>0&&Math.hypot(S.crossX-f.targetX,S.crossY-f.targetY)<=f.radius;
   drawTarget(f.targetX,f.targetY,f.radius,onT?'#ffaa00':'#ff5722','#ff8c00',onT);
@@ -632,7 +632,7 @@ function initTrackTarget(){
 }
 let _lt=0;
 function renderTracking(now){
-  drawBg();
+  ctx.fillStyle='#0a0d12'; ctx.fillRect(0,0,S.cw,S.ch);
   const dt=Math.min(0.06,(now-(_lt||now))/1000); _lt=now;
   const t=S.track, w=S.cw, h=S.ch, m=70;
   const ax=Math.sin(now*0.002)*0.5+Math.cos(now*0.0032)*0.4+(Math.random()-0.5)*0.35;

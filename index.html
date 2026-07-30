@@ -275,6 +275,7 @@ body{
     <div class="row" id="rpRow"></div>
     <div class="err" id="rpErr"></div>
     <button onclick="$('resultPopup').classList.remove('show')">关闭</button>
+  <button onclick="$('resultPopup').classList.remove('show');startTraining();" style="margin-left:8px;background:var(--green);">再来一次</button>
   </div>
 </div>
 
@@ -540,8 +541,16 @@ function drawIdle(){
   drawBg();
   drawTarget(S.cw/2,S.ch/2,22,'#f0883e','#f0883e');
   ctx.save(); ctx.fillStyle='#8b93a5';
-  ctx.font='16px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='center';
-  ctx.fillText('按 Enter 开始训练 | 鼠标碰到即触发',S.cw/2,S.ch/2+48);
+  ctx.font='16px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Enter 开始 | PC/PE 切换',S.cw/2,S.ch/2+48);
+  // Personal best
+  const name=$('nameIn').value.trim()||'Player';
+  const data=loadLB(), pb=data.find(d=>d.name===name);
+  if(pb){
+    const names={flick:'定位',tracking:'跟枪',reaction:'HB反应',hbreaction:'反应',target30:'30靶'};
+    ctx.fillStyle='#ffd700'; ctx.font='bold 14px sans-serif';
+    ctx.fillText('最佳: '+names[pb.mode]+' '+pb.score+(pb.rt?' ('+pb.rt+'ms)':'分'),S.cw/2,S.ch/2+70);
+  }
   ctx.restore();
   overlayBig.style.display='none';
 }

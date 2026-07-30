@@ -667,30 +667,28 @@ function initReactionTrial(){
   rt.waitUntil=performance.now()+800+Math.random()*4200; // 0.8-5s
 }
 function renderReaction(now){
-  // Skip grid for fastest rendering during timing-critical test
-  ctx.fillStyle='#0a0d12'; ctx.fillRect(0,0,S.cw,S.ch);
   const rt=S.react, cx=S.cw/2, cy=S.ch/2;
   if(rt.phase==='red'){
     if(now>=rt.waitUntil){rt.phase='green'; rt.targetAppeared=now; rt.jitter.push(parseFloat((now-rt.waitUntil).toFixed(1)));}
     else{
-      // No hints during wait — just dark background
-      ctx.save(); ctx.fillStyle='rgba(255,255,255,0.15)'; ctx.font='13px "Segoe UI","PingFang SC","Microsoft YaHei",sans-serif'; ctx.textAlign='center';
-      ctx.fillText('第 '+(rt.trial+1)+'/'+rt.totalTrials+' 次',cx,S.ch-30); ctx.restore();
+      ctx.fillStyle='#ce3c3c'; ctx.fillRect(0,0,S.cw,S.ch);
+      ctx.fillStyle='rgba(255,255,255,0.1)'; ctx.font='12px sans-serif'; ctx.textAlign='center';
+      ctx.fillText((rt.trial+1)+'/'+rt.totalTrials,cx,S.ch-24);
       return;
     }
   }
   if(rt.phase==='warn'){
-    ctx.fillStyle='rgba(180,0,0,0.8)'; ctx.fillRect(0,0,S.cw,S.ch);
-    ctx.save(); ctx.fillStyle='#fff'; ctx.font='bold 34px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
-    ctx.fillText('不要提前枪! 等变绿再点击',cx,cy);
-    ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.font='16px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif';
-    ctx.fillText('重新开始本次...',cx,cy+30); ctx.restore();
+    ctx.fillStyle='#b40000'; ctx.fillRect(0,0,S.cw,S.ch);
+    ctx.fillStyle='#fff'; ctx.font='bold 28px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('等变绿再点!',cx,cy-4);
+    ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.font='14px sans-serif';
+    ctx.fillText('重试...',cx,cy+22);
     return;
   }
   if(rt.phase==='green'){
     ctx.fillStyle='#4caf50'; ctx.fillRect(0,0,S.cw,S.ch);
-    ctx.fillStyle='#fff'; ctx.font='bold 46px sans-serif'; ctx.textAlign='center';
-    ctx.fillText('点击!',cx,cy);
+    ctx.fillStyle='#fff'; ctx.font='bold 52px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('点!',cx,cy);
   }
 }
 
@@ -723,9 +721,9 @@ function renderHBReaction(now){
     return;
   }
   if(h.phase==='target'){
-    drawTarget(h.targetX,h.targetY,h.radius,'#ff4444','#ff6666',false);
-    ctx.save(); ctx.fillStyle='#fff'; ctx.font='bold 30px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
-    ctx.fillText('点击任意位置!',cx,S.ch-60); ctx.restore();
+    drawTarget(h.targetX,h.targetY,h.radius+(deviceMode==='pe'?12:0),'#ff4444','#ff6666',false);
+    ctx.fillStyle='#fff'; ctx.font='bold 36px sans-serif'; ctx.textAlign='center';
+    ctx.fillText('点!',cx,S.ch-50);
   }
 }
 // HB reaction click handler

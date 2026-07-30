@@ -14,7 +14,31 @@
 body{
   font-family:'Segoe UI','PingFang SC','Microsoft YaHei',system-ui,sans-serif;
   background:#000; color:var(--text); width:100vw; height:100vh; overflow:hidden;
-  user-select:none; -webkit-user-select:none;
+  user-select:none; -webkit-user-select:none; touch-action:manipulation;
+}
+/* Mobile responsive */
+@media(max-width:700px){
+  .top-bar{gap:4px;padding:6px 8px;flex-wrap:wrap;}
+  .top-bar h1{font-size:0.9rem;}
+  .top-bar .sep{display:none;}
+  .top-bar input[type=number]{width:46px;font-size:0.7rem;padding:3px;}
+  .top-bar input[type=text]{width:56px!important;font-size:0.7rem!important;}
+  .mode-btn,.diff-btn{font-size:0.68rem;padding:4px 8px;}
+  .btn-go{font-size:0.7rem;padding:5px 12px;}
+  .stats-bar{padding:8px 4px;}
+  .stat-tile{padding:4px 10px;min-width:50px;}
+  .stat-tile .val{font-size:1rem;}
+  .stat-tile .lbl{font-size:0.6rem;}
+  .ch-panel{width:170px;padding:10px;}
+  .ch-toggle{width:26px;height:26px;font-size:0.85rem;}
+  .result-card{min-width:240px;padding:18px;}
+  #lbFloat{width:44px;height:44px;bottom:60px;right:10px;font-size:1.1rem;}
+}
+@media(max-width:400px){
+  .top-bar{gap:2px;padding:4px;}
+  .top-bar h1{font-size:0.8rem;}
+  .mode-btn,.diff-btn{font-size:0.64rem;padding:3px 6px;}
+  #lbFloat{bottom:50px;right:6px;}
 }
 
 /* Canvas fills everything */
@@ -406,9 +430,14 @@ canvas.addEventListener('mousemove',e=>{
 });
 
 // Click handler for flick mode
-// mousedown for instant reaction timing (not click — avoids mouseup delay ~50-100ms)
-canvas.addEventListener('mousedown',e=>{
+// Unified pointer handler (mouse + touch)
+function handlePointerDown(e){
   if(S.phase!=='running') return;
+  // Update crosshair position from touch if not locked
+  if(e.touches&&e.touches[0]){
+    S.crossX=e.touches[0].clientX; S.crossY=e.touches[0].clientY;
+    S.mouseOn=true;
+  }
   // Flick mode
   if(S.mode==='flick'){
     const f=S.flick;
@@ -460,7 +489,7 @@ canvas.addEventListener('mousedown',e=>{
       $('stTime').textContent=rt.totalTrials-rt.trial+'次剩余';
     }
   }
-});
+}
 
 // ============ Drawing ============
 function drawBg(){
@@ -685,8 +714,9 @@ function renderHBReaction(now){
   }
 }
 // HB reaction click handler
-canvas.addEventListener('mousedown',e=>{
+function handleHB(e){
   if(S.phase!=='running'||S.mode!=='hbreaction') return;
+  if(e.touches&&e.touches[0]){S.crossX=e.touches[0].clientX;S.crossY=e.touches[0].clientY;S.mouseOn=true;}
   const h=S.hb, now=performance.now();
   if(h.phase==='waiting'){
     h.early++; h.phase='warn';
@@ -724,7 +754,7 @@ canvas.addEventListener('mousedown',e=>{
     $('stAcc').textContent='最低:'+Math.min(...h.times)+'ms';
     $('stTime').textContent=h.totalTrials-h.trial+'次剩余';
   }
-});
+}
 
 // ============ 30-Target Challenge (Human Benchmark Aim Trainer) ============
 function spawnT30Target(){
@@ -759,8 +789,9 @@ function renderTarget30(now){
 }
 // Click handler for 30-target (appended to existing canvas click)
 const _origCanvasClick = canvas.onclick;
-canvas.addEventListener('mousedown',function t30Click(e){
+function handleT30(e){
   if(S.phase!=='running'||S.mode!=='target30') return;
+  if(e.touches&&e.touches[0]){S.crossX=e.touches[0].clientX;S.crossY=e.touches[0].clientY;S.mouseOn=true;}
   const t=S.t30, now=performance.now();
   const d=Math.hypot(S.crossX-t.targetX,S.crossY-t.targetY);
   if(d<=t.radius){
@@ -781,7 +812,7 @@ canvas.addEventListener('mousedown',function t30Click(e){
     spawnT30Target();
     updateT30Stats();
   }
-});
+}
 function updateT30Stats(){
   const t=S.t30;
   $('stHits').textContent=t.hits; $('stAcc').textContent=t.remaining+'剩';
@@ -1006,6 +1037,30 @@ function openLB(){$('lbModal').classList.add('show');renderLB('all');}
 $('lbBtn').addEventListener('click',openLB);
 $('lbFloat').addEventListener('click',openLB);
 $('lbModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
+
+// ============ Touch + Mouse bindings ============
+const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+canvas.addEventListener('mousedown',handlePointerDown);
+canvas.addEventListener('touchstart',handlePointerDown,{passive:false});
+canvas.addEventListener('mousedown',handleHB);
+canvas.addEventListener('touchstart',handleHB,{passive:false});
+canvas.addEventListener('mousedown',handleT30);
+canvas.addEventListener('touchstart',handleT30,{passive:false});
+// Touch move tracking
+canvas.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches[0]){
+    S.crossX=e.touches[0].clientX; S.crossY=e.touches[0].clientY;
+    S.mouseOn=true;
+  }
+},{passive:false});
+canvas.addEventListener('touchend',()=>{S.mouseOn=false;});
+// Prevent context menu on long press
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+// Only use pointer lock on desktop
+if(!isMobile){
+  canvas.addEventListener('click',()=>{if(S.phase==='idle')requestLock();});
+}
 
 // ============ Init ============
 function init(){

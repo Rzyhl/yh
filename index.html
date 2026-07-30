@@ -433,8 +433,10 @@ canvas.addEventListener('mousemove',e=>{
 
 // Click handler for flick mode
 // Unified pointer handler (mouse + touch)
+let _inputLockUntil=0;
 function handlePointerDown(e){
   if(S.phase!=='running') return;
+  if(performance.now()<_inputLockUntil) return; // debounce
   // Update crosshair position from touch if not locked
   if(e.touches&&e.touches[0]){
     S.crossX=e.touches[0].clientX; S.crossY=e.touches[0].clientY;
@@ -719,6 +721,7 @@ function renderHBReaction(now){
 // HB reaction click handler
 function handleHB(e){
   if(S.phase!=='running'||S.mode!=='hbreaction') return;
+  if(performance.now()<_inputLockUntil) return;
   if(e.touches&&e.touches[0]){S.crossX=e.touches[0].clientX;S.crossY=e.touches[0].clientY;S.mouseOn=true;}
   const h=S.hb, now=performance.now();
   if(h.phase==='waiting'){
@@ -795,6 +798,7 @@ function renderTarget30(now){
 const _origCanvasClick = canvas.onclick;
 function handleT30(e){
   if(S.phase!=='running'||S.mode!=='target30') return;
+  if(performance.now()<_inputLockUntil) return;
   if(e.touches&&e.touches[0]){S.crossX=e.touches[0].clientX;S.crossY=e.touches[0].clientY;S.mouseOn=true;}
   const t=S.t30, now=performance.now();
   const d=Math.hypot(S.crossX-t.targetX,S.crossY-t.targetY);
@@ -884,6 +888,7 @@ function startTraining(){
   if(usePointerLock()) canvas.classList.add('hide-cursor');
   startCountdown(()=>{
     S.phase='running'; S.startTime=performance.now();
+    _inputLockUntil=performance.now()+500; // block input for 500ms after GO
     if(S.mode==='reaction') initReactionTrial();
     if(S.mode==='hbreaction') initHBTrial();
     gameLoop();
@@ -1047,8 +1052,9 @@ $('lbModal').addEventListener('click',function(e){if(e.target===this)this.classL
 // ============ Touch + Mouse bindings ============
 let deviceMode='pc'; // 'pc' | 'pe'
 const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-// Auto-detect on load
-if(isMobile) deviceMode='pe';
+const isWeChat=/MicroMessenger/i.test(navigator.userAgent);
+// Force PE on mobile or WeChat (no Pointer Lock support)
+if(isMobile||isWeChat) deviceMode='pe';
 $('modeToggle').textContent=deviceMode.toUpperCase();
 $('modeToggle').addEventListener('click',()=>{
   deviceMode=deviceMode==='pc'?'pe':'pc';

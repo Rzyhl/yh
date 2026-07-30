@@ -415,7 +415,7 @@ window.addEventListener('resize',()=>{resizeCanvas(); if(S.phase==='idle')drawId
 function requestLock(){ if(usePointerLock()&&!document.pointerLockElement) canvas.requestPointerLock(); }
 document.addEventListener('pointerlockchange',()=>{
   S.locked=(document.pointerLockElement===canvas);
-  if(!S.locked && S.phase==='running') stopTraining();
+  if(usePointerLock()&&!S.locked && S.phase==='running') stopTraining();
 });
 
 document.addEventListener('mousemove',e=>{
@@ -941,7 +941,7 @@ function stopTraining(){
 // ============ Game Loop ============
 function gameLoop(){
   if(S.phase!=='running') return;
-  if(!document.pointerLockElement){stopTraining(); return;}
+  if(usePointerLock()&&!document.pointerLockElement){stopTraining(); return;}
   const now=performance.now(); resizeCanvas();
   if(S.mode!=='reaction'&&S.mode!=='hbreaction'&&S.mode!=='target30' && 60000-(now-S.startTime)<=0){stopTraining(); return;}
   if(S.mode==='flick') renderFlick(now);

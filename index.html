@@ -206,7 +206,7 @@ body{
 <div class="top-bar" id="topBar">
   <h1>Rz_Tools <span style="font-size:0.55rem;color:var(--text2);font-weight:400;letter-spacing:0;">By Anuket</span></h1>
   <div class="sep"></div>
-  <input type="text" id="nameIn" value="Player" maxlength="12" style="width:80px;font-size:0.8rem;" placeholder="昵称" title="输入你的名字，将显示在排行榜">
+  <input type="text" id="nameIn" maxlength="12" style="width:80px;font-size:0.8rem;" placeholder="昵称" title="每人独立ID，改名后数据归新名字">
   <div class="sep"></div>
   <span class="label">DPI</span><input type="number" id="dpiIn" value="800" min="100" max="32000" step="50">
   <span class="label">×</span><input type="number" id="sensIn" value="2.00" min="0.10" max="8.00" step="0.01">
@@ -1000,9 +1000,10 @@ function showPopup(title,score,rowHTML,err){
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('resultPopup').classList.remove('show');});
 
 // ============ Leaderboard ============
-const LB_KEY='anuket_lb_v3';
+const LB_KEY='anuket_lb_v4';
 localStorage.removeItem('anuket_lb');
 localStorage.removeItem('anuket_lb_v2');
+localStorage.removeItem('anuket_lb_v3');
 function loadLB(){try{return JSON.parse(localStorage.getItem(LB_KEY))||[];}catch(e){return[];}}
 function saveLB(data){localStorage.setItem(LB_KEY,JSON.stringify(data));}
 function addScore(mode,diff,score,hits,acc,rt){
@@ -1091,8 +1092,9 @@ canvas.addEventListener('click',()=>{if(usePointerLock()&&S.phase==='idle')reque
 // ============ Init ============
 function init(){
   // Restore saved name
-  const savedName=localStorage.getItem('anuket_name');
-  if(savedName){$('nameIn').value=savedName;}
+  let savedName=localStorage.getItem('anuket_name');
+  if(!savedName){savedName='Player_'+Math.random().toString(36).slice(2,6).toUpperCase();localStorage.setItem('anuket_name',savedName);}
+  $('nameIn').value=savedName;
   $('nameIn').addEventListener('change',()=>localStorage.setItem('anuket_name',$('nameIn').value.trim()));
   // Restore saved CS2 DPI/sens
   const savedDPI=localStorage.getItem('rz_dpi');

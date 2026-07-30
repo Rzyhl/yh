@@ -1032,7 +1032,8 @@ function renderLB(filterMode,data){
   $('lbTabs').innerHTML=tabs;
   const filtered=filterMode&&filterMode!=='all'?data.filter(d=>d.mode===filterMode):data;
   const top=filtered.slice(0,15);
-  let html='';
+  let html='<div class=\"lb-entry\" style=\"border-color:rgba(255,215,0,0.3);\"><span class=\"rank gold\">#1</span><div class=\"info\"><div class=\"mode\"><b>Le</b></div><div class=\"detail\">--</div></div><span class=\"score\" style=\"color:var(--text2);\">??</span></div>';
+  if(top.length===0){html+='<div style=\"color:var(--text2);font-size:0.76rem;padding:8px;\">暂无记录</div>';}
   if(top.length===0){html='<div style=\"color:var(--text2);font-size:0.76rem;padding:8px;\">暂无记录</div>';}
   else{
     top.forEach((d,i)=>{

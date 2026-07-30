@@ -461,6 +461,7 @@ function handlePointerDown(e){
     }
     if(rt.phase==='green'){
       const rtMs=parseFloat((now-rt.targetAppeared).toFixed(1));
+      if(rtMs<50) return;
       playClick();
       rt.times.push(rtMs); rt.trial++;
       if(rt.trial>=rt.totalTrials){
@@ -725,6 +726,7 @@ function handleHB(e){
   }
   if(h.phase==='target'){
     const rt=parseFloat((now-h.greenTime).toFixed(1));
+    if(rt<50) return; // Ignore impossible reaction (<50ms = not human)
     playClick();
     h.times.push(rt); h.trial++;
     if(h.trial>=h.totalTrials){

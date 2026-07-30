@@ -224,7 +224,8 @@ body{
     <button class="diff-btn mid sel" data-diff="medium">中</button>
     <button class="diff-btn high" data-diff="high">高</button>
   </div>
-  <button class="btn-go" id="btnStart">▶ 开始训练</button>
+  <button class="mode-btn sel" id="modeToggle" style="padding:5px 10px;font-size:0.74rem;border-color:var(--accent);">PC</button>
+<button class="btn-go" id="btnStart">▶ 开始训练</button>
   <button class="btn-go" id="btnStop" style="display:none;background:#444;color:#fff;">⏹ 停止</button>
 </div>
 
@@ -411,7 +412,7 @@ function resizeCanvas(force){
 window.addEventListener('resize',()=>{resizeCanvas(); if(S.phase==='idle')drawIdle(); drawCHPreview();});
 
 // ============ Pointer Lock ============
-function requestLock(){ if(!document.pointerLockElement) canvas.requestPointerLock(); }
+function requestLock(){ if(usePointerLock()&&!document.pointerLockElement) canvas.requestPointerLock(); }
 document.addEventListener('pointerlockchange',()=>{
   S.locked=(document.pointerLockElement===canvas);
   if(!S.locked && S.phase==='running') stopTraining();
@@ -419,7 +420,7 @@ document.addEventListener('pointerlockchange',()=>{
 
 document.addEventListener('mousemove',e=>{
   if(S.locked && (S.phase==='running'||S.phase==='countdown')){
-    const factor=S.edpi/800;
+    const factor=usePointerLock()?S.edpi/800:1;
     S.crossX+=e.movementX*factor; S.crossY+=e.movementY*factor;
     S.crossX=Math.max(0,Math.min(S.cw,S.crossX));
     S.crossY=Math.max(0,Math.min(S.ch,S.crossY));
@@ -1039,7 +1040,18 @@ $('lbFloat').addEventListener('click',openLB);
 $('lbModal').addEventListener('click',function(e){if(e.target===this)this.classList.remove('show');});
 
 // ============ Touch + Mouse bindings ============
+let deviceMode='pc'; // 'pc' | 'pe'
 const isMobile=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+// Auto-detect on load
+if(isMobile) deviceMode='pe';
+$('modeToggle').textContent=deviceMode.toUpperCase();
+$('modeToggle').addEventListener('click',()=>{
+  deviceMode=deviceMode==='pc'?'pe':'pc';
+  $('modeToggle').textContent=deviceMode.toUpperCase();
+  // Update pointer lock behavior
+  if(deviceMode==='pe'&&document.pointerLockElement) document.exitPointerLock();
+});
+function usePointerLock(){return deviceMode==='pc'&&!isMobile;}
 canvas.addEventListener('mousedown',handlePointerDown);
 canvas.addEventListener('touchstart',handlePointerDown,{passive:false});
 canvas.addEventListener('mousedown',handleHB);
@@ -1057,10 +1069,8 @@ canvas.addEventListener('touchmove',e=>{
 canvas.addEventListener('touchend',()=>{S.mouseOn=false;});
 // Prevent context menu on long press
 canvas.addEventListener('contextmenu',e=>e.preventDefault());
-// Only use pointer lock on desktop
-if(!isMobile){
-  canvas.addEventListener('click',()=>{if(S.phase==='idle')requestLock();});
-}
+// Pointer lock warmup click (PC only)
+canvas.addEventListener('click',()=>{if(usePointerLock()&&S.phase==='idle')requestLock();});
 
 // ============ Init ============
 function init(){

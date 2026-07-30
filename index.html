@@ -1047,7 +1047,7 @@ function renderLB(filterMode,data){
   document.querySelectorAll('.lb-tab').forEach(t=>{
     t.addEventListener('click',()=>{
       document.querySelectorAll('.lb-tab').forEach(x=>x.classList.remove('sel'));
-      t.classList.add('sel'); renderLB(t.dataset.lb);
+      t.classList.add('sel'); loadLB(d=>renderLB(t.dataset.lb,d));
     });
   });
 }

@@ -457,13 +457,13 @@ function handlePointerDown(e){
   // Reaction test (red→green click anywhere)
   if(S.mode==='reaction'){
     const rt=S.react, now=performance.now();
-    if(rt.phase==='red'){
-      // Grace period: ignore clicks within 80ms before green appears
-      if(now>=rt.waitUntil-80) return;
+    // Check against waitUntil, not phase — avoids render/event race on mobile
+    if(now<rt.waitUntil-50){
       rt.early++; rt.phase='warn';
       setTimeout(()=>initReactionTrial(),600); return;
     }
-    if(rt.phase==='green'){
+    if(now>=rt.waitUntil){
+      if(!rt.targetAppeared) rt.targetAppeared=now;
       const rtMs=parseFloat((now-rt.targetAppeared).toFixed(1));
       if(rtMs<50) return;
       playClick();
@@ -730,12 +730,12 @@ function handleHB(e){
   if(performance.now()<_inputLockUntil) return;
   if(e.touches&&e.touches[0]){S.crossX=e.touches[0].clientX;S.crossY=e.touches[0].clientY;S.mouseOn=true;}
   const h=S.hb, now=performance.now();
-  if(h.phase==='waiting'){
-    if(now>=h.waitUntil-80) return;
+  if(now<h.waitUntil-50){
     h.early++; h.phase='warn';
     setTimeout(()=>initHBTrial(),600); return;
   }
-  if(h.phase==='target'){
+  if(now>=h.waitUntil){
+    if(!h.greenTime||h.greenTime===0) h.greenTime=now;
     const rt=parseFloat((now-h.greenTime).toFixed(1));
     if(rt<50) return; // Ignore impossible reaction (<50ms = not human)
     playClick();

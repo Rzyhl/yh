@@ -463,8 +463,7 @@ function handlePointerDown(e){
       setTimeout(()=>initReactionTrial(),600); return;
     }
     if(now>=rt.waitUntil){
-      if(!rt.targetAppeared) rt.targetAppeared=now;
-      const rtMs=parseFloat((now-rt.targetAppeared).toFixed(1));
+      const rtMs=parseFloat((now-rt.waitUntil).toFixed(1));
       if(rtMs<50) return;
       playClick();
       rt.times.push(rtMs); rt.trial++;
@@ -735,8 +734,7 @@ function handleHB(e){
     setTimeout(()=>initHBTrial(),600); return;
   }
   if(now>=h.waitUntil){
-    if(!h.greenTime||h.greenTime===0) h.greenTime=now;
-    const rt=parseFloat((now-h.greenTime).toFixed(1));
+    const rt=parseFloat((now-h.waitUntil).toFixed(1));
     if(rt<50) return; // Ignore impossible reaction (<50ms = not human)
     playClick();
     h.times.push(rt); h.trial++;

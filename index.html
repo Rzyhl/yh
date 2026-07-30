@@ -459,6 +459,8 @@ function handlePointerDown(e){
   if(S.mode==='reaction'){
     const rt=S.react, now=performance.now();
     if(rt.phase==='red'){
+      // Grace period: ignore clicks within 80ms before green appears
+      if(now>=rt.waitUntil-80) return;
       rt.early++; rt.phase='warn';
       setTimeout(()=>initReactionTrial(),600); return;
     }
@@ -677,9 +679,8 @@ function renderReaction(now){
     return;
   }
   if(rt.phase==='green'){
-    // Minimal rendering for fastest response — just green fill, no grid
     ctx.fillStyle='#4caf50'; ctx.fillRect(0,0,S.cw,S.ch);
-    ctx.fillStyle='#fff'; ctx.font='bold 46px \"Segoe UI\",\"PingFang SC\",\"Microsoft YaHei\",sans-serif'; ctx.textAlign='center';
+    ctx.fillStyle='#fff'; ctx.font='bold 46px sans-serif'; ctx.textAlign='center';
     ctx.fillText('点击!',cx,cy);
   }
 }
@@ -725,6 +726,7 @@ function handleHB(e){
   if(e.touches&&e.touches[0]){S.crossX=e.touches[0].clientX;S.crossY=e.touches[0].clientY;S.mouseOn=true;}
   const h=S.hb, now=performance.now();
   if(h.phase==='waiting'){
+    if(now>=h.waitUntil-80) return;
     h.early++; h.phase='warn';
     setTimeout(()=>initHBTrial(),600); return;
   }
@@ -888,7 +890,7 @@ function startTraining(){
   if(usePointerLock()) canvas.classList.add('hide-cursor');
   startCountdown(()=>{
     S.phase='running'; S.startTime=performance.now();
-    _inputLockUntil=performance.now()+500; // block input for 500ms after GO
+    _inputLockUntil=performance.now()+300;
     if(S.mode==='reaction') initReactionTrial();
     if(S.mode==='hbreaction') initHBTrial();
     gameLoop();
